@@ -102,7 +102,7 @@ export default function RegisterScreen() {
     }
   };
 
-  return (
+   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
@@ -126,32 +126,38 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.formContainer}>
-            {/* VENDOR OR STUDENT IDENTITY ACCENTS SELECTION */}
-            <Text style={styles.inputLabel}>I AM A:</Text>
-            <View style={styles.toggleRow}>
-              <TouchableOpacity 
-                style={[styles.toggleButton, userRole === 'STUDENT' && styles.activeToggle]} 
-                onPress={() => setUserRole('STUDENT')}
-              >
-                <Text style={[styles.toggleButtonText, userRole === 'STUDENT' && styles.activeToggleText]}>STUDENT</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.toggleButton, userRole === 'VENDOR' && styles.activeToggle]} 
-                onPress={() => setUserRole('VENDOR')}
-              >
-                <Text style={[styles.toggleButtonText, userRole === 'VENDOR' && styles.activeToggleText]}>VENDOR</Text>
-              </TouchableOpacity>
-            </View>
+            
+            {/* 1. ONLY SHOW ROLE SELECTION & FULL NAME WHEN REGISTERING */}
+            {isRegisterMode && (
+              <View style={{ width: '100%' }}>
+                <Text style={styles.inputLabel}>I AM A:</Text>
+                <View style={styles.toggleRow}>
+                  <TouchableOpacity 
+                    style={[styles.toggleButton, userRole === 'STUDENT' && styles.activeToggle]} 
+                    onPress={() => setUserRole('STUDENT')}
+                  >
+                    <Text style={[styles.toggleButtonText, userRole === 'STUDENT' && styles.activeToggleText]}>STUDENT</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.toggleButton, userRole === 'VENDOR' && styles.activeToggle]} 
+                    onPress={() => setUserRole('VENDOR')}
+                  >
+                    <Text style={[styles.toggleButtonText, userRole === 'VENDOR' && styles.activeToggleText]}>VENDOR</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <Text style={styles.inputLabel}>FULL NAME</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="ENTER YOUR FIRST & LAST NAME" 
-              placeholderTextColor="#A0AEC0"
-              value={fullName}
-              onChangeText={setFullName}
-            />
+                <Text style={styles.inputLabel}>FULL NAME</Text>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="ENTER YOUR FIRST & LAST NAME" 
+                  placeholderTextColor="#A0AEC0"
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+              </View>
+            )}
 
+            {/* 2. ALWAYS SHOW EMAIL AND PASSWORD FIELDS (BOTH LOGIN & REGISTER) */}
             <Text style={styles.inputLabel}>VERIFIABLE TUT EMAIL</Text>
             <TextInput 
               style={styles.input} 
@@ -174,7 +180,8 @@ export default function RegisterScreen() {
               autoCapitalize="none"
             />
 
-           {isRegisterMode && (
+            {/* 3. ONLY SHOW CONFIRM PASSWORD WHEN REGISTERING */}
+            {isRegisterMode && (
               <View style={{ width: '100%' }}>
                 <Text style={styles.inputLabel}>VERIFY SECURITY PASSWORD</Text>
                 <TextInput 
@@ -189,7 +196,7 @@ export default function RegisterScreen() {
               </View>
             )}
 
-             <TouchableOpacity 
+            <TouchableOpacity 
               style={styles.button} 
               onPress={isRegisterMode ? handleRegisterNowClick : handleLoginSubmission}
             >
@@ -201,16 +208,17 @@ export default function RegisterScreen() {
               onPress={() => setIsRegisterMode(!isRegisterMode)}
               activeOpacity={0.7}
             >
-            <Text style={styles.registerText}>
+              <Text style={styles.registerText}>
                 {isRegisterMode ? "ALREADY HAVE AN ACCOUNT? LOG IN" : "NEW STUDENT? CREATE ACCOUNT"}
               </Text>
-               </TouchableOpacity>
+            </TouchableOpacity>
           </View>
 
         </View>
       </ImageBackground>
     </View>
   );
+
 }
 
 // FIXED COMPATIBLE WEB DESIGN RULES
