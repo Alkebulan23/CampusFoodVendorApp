@@ -178,13 +178,15 @@ const styles = StyleSheet.create({
     fontWeight: '900', // THE STRAY 'npo' CORRUPTION CHARACTER IS FIXED HERE!
     letterSpacing: 1.5,
   },
-  registerLinkContainer: {
+    registerLinkContainer: {
     marginTop: 22,
-    paddingVertical: 12, // MAKES CLICK SELECTION AREA LARGE FOR BROWSERS
+    paddingVertical: 12,    // 1️⃣ EXPANDS THE MOUSE HITBOX AREA SO IT IS EASIER TO CLICK
     alignItems: 'center',
     width: '100%',
-    zIndex: 99, // FORCES THE BUTTON TO SITS ABOARD ALL COLLIDING SHADOW LAYERS
+    position: 'relative',   // 2️⃣ EXPLICITLY SEPARATES IT FROM NEIGHBORING CONTAINERS
+    zIndex: 999,            // 3️⃣ FORCES THE LINK TO FLOAT ABOVE ALL INVISIBLE COLLIDING BOXES
   },
+
   registerText: {
     color: '#FFFFFF',
     fontSize: 12,
