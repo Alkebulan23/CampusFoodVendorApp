@@ -39,23 +39,25 @@ export default function RegisterScreen() {
       return;
     }
 
-    // 3️⃣ INJECT USER REGISTRY ATTRIBUTES TO THE SUPABASE AUTH ENGINE
+        // INJECT ENCRYPTED USER ATTRIBUTES TO SUPABASE AUTH CLOUD REGISTRY
     try {
       const { data, error } = await supabase.auth.signUp({
         email: emailLower,
         password: regPassword,
         options: {
+          emailRedirectTo: 'http://localhost:8081', // 👈 ADD THIS SINGLE LINE HERE TO BYPASS THE SETTINGS SITES!
           data: {
             full_name: fullName,
-            role: userRole, // STORES STUDENT OR VENDOR METADATA IDENTIFICATION TAGS
+            role: userRole, 
           }
         }
       });
 
       if (error) {
-        alert(`SUPABASE REGISTRATION ERROR: ${error.message.toUpperCase()}`);
+        alert(`SUPABASE CLOUD ERROR: ${error.message.toUpperCase()}`);
         return;
       }
+
 
       // SUCCESS CONTAINER ACTION ALERT 
       alert(`SUCCESS! ACCOUNT CREATED SECURELY.\n\nA real verification email has been dispatched to: ${emailLower}\n\nPlease verify your account before logging in.`);
