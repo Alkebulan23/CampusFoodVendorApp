@@ -68,7 +68,9 @@ export default function App() {
             </TouchableOpacity>
 
             {/* ADDITIONAL REGISTER ACTION LINK FOR BETTER APP FLOW */}
-            <TouchableOpacity style={styles.registerLinkContainer} onPress={() => router.push('/register')}>
+            <TouchableOpacity style={styles.registerLinkContainer}
+             onPress={() => router.push('/register')}
+              activeOpacity={0.7}  >
               <Text style={styles.registerText}>NEW STUDENT? CREATE ACCOUNT</Text>
             </TouchableOpacity>
           </View>
@@ -173,12 +175,15 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#0B2977', 
     fontSize: 16,
-    fontWeight: '900',npo
+    fontWeight: '900',
     letterSpacing: 1.5,
   },
   registerLinkContainer: {
-    marginTop: 20,
+   marginTop: 22,
+    paddingVertical: 10, // Makes the clickable area bigger
     alignItems: 'center',
+    width: '100%',
+    zIndex: 99,    
   },
   registerText: {
     color: '#FFFFFF',
