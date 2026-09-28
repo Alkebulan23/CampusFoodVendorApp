@@ -25,12 +25,12 @@ export default function App() {
           />
 
           {/* TUT SLOGAN IN ALL CAPITAL LETTERS */}
-          <Text style={styles.tutSlogan}>WE EMPOWER PEOPLE</Text>
+          <Text style={styles.tutSlogan}>We empower people</Text>
 
           {/* APP TEXT HEADERS IN ALL CAPITAL LETTERS */}
           <View style={styles.headerContainer}>
             <Text style={styles.title}>WELCOME!</Text>
-            <Text style={styles.appSlogan}>CAMPUS HUNGER IS A THING OF THE PAST</Text>
+            <Text style={styles.appSlogan}>Campus Hunger Is A Thing Of The Past</Text>
           </View>
 
           {/* ENHANCED ATTRACTIVE INPUT CARD LAYOUT */}
