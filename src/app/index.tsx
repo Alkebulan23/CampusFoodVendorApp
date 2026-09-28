@@ -8,7 +8,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+      ``
       {/* HIGH QUALITY BACKGROUND IMAGE FEATURING CAMPUS STUDENTS */}
       <ImageBackground 
         source={{ uri: 'https://unsplash.com' }} 
@@ -19,7 +19,7 @@ export default function App() {
           
           {/* FULLY FUNCTIONAL OFFICIAL TUT EMBLEM LINK */}
           <Image 
-            source={{ uri: 'https://wikimedia.org' }} 
+            source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtem1uQCS6XOlDYo-GatM4fp8ROf7LUyJaXuDzpR9ZLA&s' }} 
             style={styles.logo} 
             resizeMode="contain"
           />
