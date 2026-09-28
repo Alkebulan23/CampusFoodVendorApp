@@ -53,7 +53,7 @@ export default function RegisterScreen() {
         <View style={styles.overlay}>
           
           <Image 
-            source={{ uri: 'https://gstatic.com' }} 
+            source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtem1uQCS6XOlDYo-GatM4fp8ROf7LUyJaXuDzpR9ZLA&s' }} 
             style={styles.logo} 
             resizeMode="contain"
           />
