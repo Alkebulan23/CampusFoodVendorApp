@@ -1,7 +1,9 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Image, ImageBackground, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function App() {
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -60,12 +62,13 @@ export default function App() {
             />
 
             {/* HIGH-CONTRAST ATTRACTIVE ACTION BUTTON IN ALL CAPS */}
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={styles.button}
+            >
               <Text style={styles.buttonText}>LOG IN</Text>
             </TouchableOpacity>
 
             {/* ADDITIONAL REGISTER ACTION LINK FOR BETTER APP FLOW */}
-            <TouchableOpacity style={styles.registerLinkContainer}>
+            <TouchableOpacity style={styles.registerLinkContainer} onPress={() => router.push('/register')}>
               <Text style={styles.registerText}>NEW STUDENT? CREATE ACCOUNT</Text>
             </TouchableOpacity>
           </View>
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#0B2977', 
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '900',npo
     letterSpacing: 1.5,
   },
   registerLinkContainer: {
