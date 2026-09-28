@@ -27,7 +27,7 @@ export default function RegisterScreen() {
     }
 
     // MATCH VALID PASSWORDS (AT LEAST 6 CHARACTERS, 1 LETTER, 1 NUMBER)
-    const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}\$/;
+    const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
     if (!strongPasswordRegex.test(regPassword)) {
       alert("WEAK PASSWORD: MUST BE AT LEAST 6 CHARACTERS LONG AND CONTAIN BOTH LETTERS AND NUMBERS.");
       return;
