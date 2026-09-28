@@ -1,9 +1,14 @@
 import { useRouter } from 'expo-router'; // UTILITY ENGINE LINKED FOR FILE NAVIGATION
 import { useState } from 'react';
 import { Image, ImageBackground, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { supabase } from '../../supabaseClient';
 
 export default function RegisterScreen() {
   const router = useRouter(); // ROUTER OBJECT CALL ENGINE
+
+  // DYNAMIC APP VIEW STATE: CONTROLS WHETHER CARD IS 'LOGIN' OR 'REGISTER' MODE
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+
 
   // FORM ATTRIBUTE BINDINGS STATE
   const [fullName, setFullName] = useState('');
@@ -12,10 +17,10 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [userRole, setUserRole] = useState('STUDENT'); // DEFAULT
 
-  // SIGN UP LOGIC REGULAR VALIDATOR
-  const handleRegisterSubmission = () => {
-    if (!fullName || !regEmail || !regPassword || !confirmPassword) {
-      alert("ERROR: ALL COMPONENT FIELDS ARE MANDATORY FOR REGISTRATION.");
+  // DYNAMIC REAL-TIME SUPABASE SIGN-UP & EMAIL DISPATCH TRIGGER
+  const handleRegisterNowClick = async () => {
+    if (!fullName || !regEmail || !regPassword || !userRole || !confirmPassword) {
+      alert("ERROR: ALL REGISTRATION FIELDS ARE MANDATORY.");
       return;
     }
 
@@ -38,8 +43,63 @@ export default function RegisterScreen() {
       return;
     }
 
-    alert(`SUCCESS: ACCOUNT CREATED SECURELY AS A ${userRole}! PLEASE VERIFY YOUR EMAIL.`);
-    router.replace('/'); // FORCES ROUTER RE-DOCK LINK STRAIGHT BACK TO LOGIN HOME
+   // EXECUTE LIVE DISPATCH UP TO THE SUPABASE AUTH REALM
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: emailLower,
+        password: regPassword,
+        options: {
+          emailRedirectTo: 'http://localhost:8081', // RETURNS USER BACK TO RUNTIME PREVIEWS POST CLICK
+          data: {
+            full_name: fullName,
+            role: userRole, // STORES STUDENT OR VENDOR CATEGORIES IN DATABASE METADATA
+          }
+        }
+      });
+
+      if (error) {
+        alert(`SUPABASE REGISTRATION ERROR: ${error.message.toUpperCase()}`);
+        return;
+      }
+
+      alert(`SUCCESS! ACCOUNT SECURED.\n\nA real verification email link has been sent by Supabase to: ${emailLower}\n\nPlease click the link to confirm before logging in.`);
+      setIsRegisterMode(false); // FLIPS THEM CLEANLY BACK TO THE LOGIN INTERFACE VIEW
+      
+    } catch (err) {
+      alert("SERVER ERROR: Could not talk to the cloud database registry.");
+    }
+  };
+
+  // STANDARD SIGN-IN SESSION CONTROLLER
+  const handleLoginSubmission = async () => {
+    if (!regEmail || !regPassword) {
+      alert("PLEASE ENTER BOTH YOUR TUT EMAIL AND PASSWORD.");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: regEmail.toLowerCase().trim(),
+        password: regPassword,
+      });
+
+      if (error) {
+        alert(`LOGIN REJECTED: ${error.message.toUpperCase()}`);
+        return;
+      }
+
+      // SESSION GATEWAY VERIFICATION VALIDATOR
+      if (!data.user?.email_confirmed_at) {
+        alert("ACCESS DENIED: YOUR TUT EMAIL ADDRESS IS NOT VERIFIED.\n\nPlease activate the verification link sent by Supabase in your inbox first.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      alert("WELCOME BACK! LOGGED IN SUCCESSFULLY.");
+      // router.replace('/dashboard');
+    } catch (err) {
+      alert("SERVER TIMEOUT: Connection breakdown.");
+    }
   };
 
   return (
@@ -60,9 +120,9 @@ export default function RegisterScreen() {
 
           <Text style={styles.tutSlogan}>We Empower People</Text>
 
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>SIGN UP</Text>
-            <Text style={styles.appSlogan}>Create Your Campus Food Account Below</Text>
+           <View style={styles.headerContainer}>
+            <Text style={styles.title}>{isRegisterMode ? "SIGN UP" : "WELCOME!"}</Text>
+            <Text style={styles.appSlogan}>Campus Hunger Is A Thing Of The Past</Text>
           </View>
 
           <View style={styles.formContainer}>
@@ -114,29 +174,37 @@ export default function RegisterScreen() {
               autoCapitalize="none"
             />
 
-            <Text style={styles.inputLabel}>VERIFY SECURITY PASSWORD</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="RE-ENTER PASSWORD TO MATCH" 
-              placeholderTextColor="#A0AEC0"
-              secureTextEntry={true} 
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              autoCapitalize="none"
-            />
+           {isRegisterMode && (
+              <View style={{ width: '100%' }}>
+                <Text style={styles.inputLabel}>VERIFY SECURITY PASSWORD</Text>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="RE-ENTER PASSWORD TO MATCH" 
+                  placeholderTextColor="#A0AEC0"
+                  secureTextEntry={true} 
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  autoCapitalize="none"
+                />
+              </View>
+            )}
 
-            <TouchableOpacity style={styles.button} onPress={handleRegisterSubmission}>
-              <Text style={styles.buttonText}>REGISTER NOW</Text>
+             <TouchableOpacity 
+              style={styles.button} 
+              onPress={isRegisterMode ? handleRegisterNowClick : handleLoginSubmission}
+            >
+              <Text style={styles.buttonText}>{isRegisterMode ? "REGISTER NOW" : "LOG IN"}</Text>
             </TouchableOpacity>
 
-            {/* CLICK EVENT USES ROUTER BACK POINTER LINK */}
             <TouchableOpacity 
               style={styles.registerLinkContainer} 
-              onPress={() => router.push('/')}
+              onPress={() => setIsRegisterMode(!isRegisterMode)}
               activeOpacity={0.7}
             >
-              <Text style={styles.registerText}>ALREADY HAVE AN ACCOUNT? LOG IN</Text>
-            </TouchableOpacity>
+            <Text style={styles.registerText}>
+                {isRegisterMode ? "ALREADY HAVE AN ACCOUNT? LOG IN" : "NEW STUDENT? CREATE ACCOUNT"}
+              </Text>
+               </TouchableOpacity>
           </View>
 
         </View>
