@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Image, ImageBackground, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function App() {
-  const router = useRouter();
+  const router = useRouter(); // THE CORE NAVIGATION ENGINE
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -11,34 +11,29 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* HIGH QUALITY BACKGROUND IMAGE FEATURING CAMPUS STUDENTS */}
+      {/* CAMPUS STUDENTS BACKGROUND IMAGE */}
       <ImageBackground 
         source={{ uri: 'https://unsplash.com' }} 
         style={styles.backgroundImage}
       >
-        {/* PREMIUM TRANSPARENT DEEP BLUE GRADIENT OVERLAY */}
         <View style={styles.overlay}>
           
-          {/* FULLY FUNCTIONAL OFFICIAL TUT EMBLEM LINK */}
+          {/* TUT LOGO EMBLEM */}
           <Image 
             source={{ uri: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRtem1uQCS6XOlDYo-GatM4fp8ROf7LUyJaXuDzpR9ZLA&s' }} 
             style={styles.logo} 
             resizeMode="contain"
           />
 
-          {/* TUT SLOGAN IN ALL CAPITAL LETTERS */}
-          <Text style={styles.tutSlogan}>We empower people</Text>
+          <Text style={styles.tutSlogan}>We Empower People</Text>
 
-          {/* APP TEXT HEADERS IN ALL CAPITAL LETTERS */}
           <View style={styles.headerContainer}>
             <Text style={styles.title}>WELCOME!</Text>
             <Text style={styles.appSlogan}>Campus Hunger Is A Thing Of The Past</Text>
           </View>
 
-          {/* ENHANCED ATTRACTIVE INPUT CARD LAYOUT */}
+          {/* ATTRACTIVE LOG IN FORM BOX */}
           <View style={styles.formContainer}>
-            
-            {/* USERNAME INPUT WITH CAPITALIZED PLACEHOLDER */}
             <Text style={styles.inputLabel}>STUDENT NUMBER / USERNAME</Text>
             <TextInput 
               style={styles.input} 
@@ -49,7 +44,6 @@ export default function App() {
               autoCapitalize="none"
             />
 
-            {/* PASSWORD INPUT WITH CAPITALIZED PLACEHOLDER */}
             <Text style={styles.inputLabel}>SECURITY PASSWORD</Text>
             <TextInput 
               style={styles.input} 
@@ -61,16 +55,20 @@ export default function App() {
               autoCapitalize="none"
             />
 
-            {/* HIGH-CONTRAST ATTRACTIVE ACTION BUTTON IN ALL CAPS */}
-            <TouchableOpacity style={styles.button}
+            {/* LOG IN TOUCH ACTION BUTTON */}
+            <TouchableOpacity 
+              style={styles.button} 
+              onPress={() => alert(`ATTEMPTING LOGIN FOR STUDENT: ${username || "GUEST"}`)}
             >
               <Text style={styles.buttonText}>LOG IN</Text>
             </TouchableOpacity>
 
-            {/* ADDITIONAL REGISTER ACTION LINK FOR BETTER APP FLOW */}
-            <TouchableOpacity style={styles.registerLinkContainer}
-             onPress={() => router.push('/register')}
-              activeOpacity={0.7}  >
+            {/* CREATE ACCOUNT LINK - ELEVATED WITH MAX Z-INDEX FOR WEB CLICKABILITY */}
+            <TouchableOpacity 
+              style={styles.registerLinkContainer}
+              onPress={() => router.push('/register')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.registerText}>NEW STUDENT? CREATE ACCOUNT</Text>
             </TouchableOpacity>
           </View>
@@ -105,10 +103,10 @@ const styles = StyleSheet.create({
   },
   tutSlogan: {
     color: '#FFCC00', 
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
     fontStyle: 'italic',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     marginBottom: 45,
     textAlign: 'center',
   },
@@ -124,12 +122,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   appSlogan: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#E2E8F0',
     textAlign: 'center',
     fontWeight: '600',
     fontStyle: 'italic',
-    letterSpacing: 1.2,
+    letterSpacing: 1,
     paddingHorizontal: 10,
   },
   formContainer: {
@@ -140,7 +138,11 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
-    boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.3)',
+    // STANDARDIZED WEB COMPATIBLE SHADOW CODES
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   inputLabel: {
     color: '#FFCC00',
@@ -160,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     color: '#1A202C',
     fontWeight: '600',
-    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)', 
   },
   button: {
     width: '100%',
@@ -170,20 +171,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-    boxShadow: '0px 6px 12px rgba(255, 204, 0, 0.3)',
   },
   buttonText: {
     color: '#0B2977', 
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: '900', // THE STRAY 'npo' CORRUPTION CHARACTER IS FIXED HERE!
     letterSpacing: 1.5,
   },
   registerLinkContainer: {
-   marginTop: 22,
-    paddingVertical: 10, // Makes the clickable area bigger
+    marginTop: 22,
+    paddingVertical: 12, // MAKES CLICK SELECTION AREA LARGE FOR BROWSERS
     alignItems: 'center',
     width: '100%',
-    zIndex: 99,    
+    zIndex: 99, // FORCES THE BUTTON TO SITS ABOARD ALL COLLIDING SHADOW LAYERS
   },
   registerText: {
     color: '#FFFFFF',
