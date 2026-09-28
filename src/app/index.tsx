@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
   },
-  input: {
+    input: {
     width: '100%',
     height: 52,
     backgroundColor: '#ffffff',
@@ -126,25 +126,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     color: '#333333',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    // Updated line to fix the warning:
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)', 
   },
   button: {
     width: '100%',
     height: 52,
-    backgroundColor: '#FFCC00', // Gold/Yellow action button for contrast
+    backgroundColor: '#FFCC00', 
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    // Updated line to fix the warning:
+    boxShadow: '0px 4px 5px rgba(0, 0, 0, 0.2)',
   },
   buttonText: {
     color: '#0B2977', // Text matches the main blue brand color
