@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     textAlign: 'center',
     fontWeight: '600',
+    fontStyle: 'italic',
     letterSpacing: 1.2,
     paddingHorizontal: 10,
   },
