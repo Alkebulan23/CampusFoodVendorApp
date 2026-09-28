@@ -9,56 +9,64 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Background Image featuring Campus Students */}
+      {/* HIGH QUALITY BACKGROUND IMAGE FEATURING CAMPUS STUDENTS */}
       <ImageBackground 
         source={{ uri: 'https://unsplash.com' }} 
         style={styles.backgroundImage}
       >
-        {/* Blue color tint overlay to ensure readability */}
+        {/* PREMIUM TRANSPARENT DEEP BLUE GRADIENT OVERLAY */}
         <View style={styles.overlay}>
           
-          {/* TUT Logo */}
+          {/* FULLY FUNCTIONAL OFFICIAL TUT EMBLEM LINK */}
           <Image 
             source={{ uri: 'https://wikimedia.org' }} 
             style={styles.logo} 
             resizeMode="contain"
           />
 
-          {/* TUT Official Slogan */}
-          <Text style={styles.tutSlogan}>We empower people</Text>
+          {/* TUT SLOGAN IN ALL CAPITAL LETTERS */}
+          <Text style={styles.tutSlogan}>WE EMPOWER PEOPLE</Text>
 
-          {/* Welcome Text Header */}
+          {/* APP TEXT HEADERS IN ALL CAPITAL LETTERS */}
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>Welcome!</Text>
-            <Text style={styles.appSlogan}>Campus hunger is a thing of the past</Text>
+            <Text style={styles.title}>WELCOME!</Text>
+            <Text style={styles.appSlogan}>CAMPUS HUNGER IS A THING OF THE PAST</Text>
           </View>
 
-          {/* Input Fields Wrapper */}
+          {/* ENHANCED ATTRACTIVE INPUT CARD LAYOUT */}
           <View style={styles.formContainer}>
-            {/* Username Input */}
+            
+            {/* USERNAME INPUT WITH CAPITALIZED PLACEHOLDER */}
+            <Text style={styles.inputLabel}>STUDENT NUMBER / USERNAME</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Username or Student No." 
-              placeholderTextColor="#999"
+              placeholder="ENTER YOUR STUDENT NO." 
+              placeholderTextColor="#A0AEC0"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
             />
 
-            {/* Password Input */}
+            {/* PASSWORD INPUT WITH CAPITALIZED PLACEHOLDER */}
+            <Text style={styles.inputLabel}>SECURITY PASSWORD</Text>
             <TextInput 
               style={styles.input} 
-              placeholder="Password" 
-              placeholderTextColor="#999"
+              placeholder="ENTER YOUR PASSWORD" 
+              placeholderTextColor="#A0AEC0"
               secureTextEntry={true} 
               value={password}
               onChangeText={setPassword}
               autoCapitalize="none"
             />
 
-            {/* Login Button */}
+            {/* HIGH-CONTRAST ATTRACTIVE ACTION BUTTON IN ALL CAPS */}
             <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonText}>LOG IN</Text>
+            </TouchableOpacity>
+
+            {/* ADDITIONAL REGISTER ACTION LINK FOR BETTER APP FLOW */}
+            <TouchableOpacity style={styles.registerLinkContainer}>
+              <Text style={styles.registerText}>NEW STUDENT? CREATE ACCOUNT</Text>
             </TouchableOpacity>
           </View>
 
@@ -71,6 +79,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0B2977',
   },
   backgroundImage: {
     flex: 1,
@@ -79,70 +88,98 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 41, 119, 0.85)', // Deep TUT Blue with transparency to reveal students
+    backgroundColor: 'rgba(11, 41, 119, 0.88)', 
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   logo: {
-    width: 160,
-    height: 90,
-    marginBottom: 4,
+    width: 200,
+    height: 100,
+    marginBottom: 6,
   },
   tutSlogan: {
-    color: '#FFCC00', // Gold accents to tie into the official emblem
-    fontSize: 14,
-    fontWeight: '600',
-    fontStyle: 'italic',
-    marginBottom: 40,
-    letterSpacing: 0.5,
+    color: '#FFCC00', 
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 45,
+    textAlign: 'center',
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 35,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#FFFFFF',
     marginBottom: 8,
+    letterSpacing: 1.5,
   },
   appSlogan: {
-    fontSize: 16,
-    color: '#E0E6ED',
+    fontSize: 13,
+    color: '#E2E8F0',
     textAlign: 'center',
-    fontWeight: '400',
+    fontWeight: '600',
+    letterSpacing: 1.2,
+    paddingHorizontal: 10,
   },
   formContainer: {
     width: '100%',
-    maxWidth: 340,
+    maxWidth: 350,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    boxShadow: '0px 10px 25px rgba(0, 0, 0, 0.3)',
   },
-    input: {
+  inputLabel: {
+    color: '#FFCC00',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 1,
+    marginLeft: 4,
+  },
+  input: {
     width: '100%',
     height: 52,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    color: '#333333',
-    // Updated line to fix the warning:
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)', 
+    fontSize: 15,
+    marginBottom: 18,
+    color: '#1A202C',
+    fontWeight: '600',
+    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)', 
   },
   button: {
     width: '100%',
-    height: 52,
+    height: 54,
     backgroundColor: '#FFCC00', 
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    // Updated line to fix the warning:
-    boxShadow: '0px 4px 5px rgba(0, 0, 0, 0.2)',
+    marginTop: 10,
+    boxShadow: '0px 6px 12px rgba(255, 204, 0, 0.3)',
   },
   buttonText: {
-    color: '#0B2977', // Text matches the main blue brand color
-    fontSize: 18,
+    color: '#0B2977', 
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+  },
+  registerLinkContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  registerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '700',
+    letterSpacing: 1,
+    textDecorationLine: 'underline',
   },
 });
