@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
     color: '#FFCC00', 
     fontSize: 13,
     fontWeight: '700',
+    fontStyle: 'italic',
     letterSpacing: 2,
     marginBottom: 45,
     textAlign: 'center',
