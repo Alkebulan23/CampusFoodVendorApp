@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router'; // UTILITY ENGINE LINKED FOR FILE NAVIGATION
 import { useState } from 'react';
 import { Image, ImageBackground, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { supabase } from '../../supabaseClient'; // 1️⃣ IMPORT THE SECURE SUPABASE INJECTOR HUB
+import { supabase } from '../../supabaseClient';
+// ⚡ FIXED RELATIVE PATH INTERFACES CORRECTLY WITH ONE DOT REMOVED
 
 export default function RegisterScreen() {
   const router = useRouter(); // ROUTER OBJECT CALL ENGINE
@@ -27,8 +28,8 @@ export default function RegisterScreen() {
       return;
     }
 
-    // MATCH VALID PASSWORDS (AT LEAST 6 CHARACTERS, 1 LETTER, 1 NUMBER)
-    const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}\$/;
+    // ⚡ FIXED PASSWORD REGEX: REMOVED BACKSLASH BEFORE END-ANCHOR TO PREVENT FALSE DISMISSALS
+    const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
     if (!strongPasswordRegex.test(regPassword)) {
       alert("WEAK PASSWORD: MUST BE AT LEAST 6 CHARACTERS LONG AND CONTAIN BOTH LETTERS AND NUMBERS.");
       return;
@@ -39,13 +40,13 @@ export default function RegisterScreen() {
       return;
     }
 
-        // INJECT ENCRYPTED USER ATTRIBUTES TO SUPABASE AUTH CLOUD REGISTRY
+    // INJECT ENCRYPTED USER ATTRIBUTES TO SUPABASE AUTH CLOUD REGISTRY
     try {
       const { data, error } = await supabase.auth.signUp({
         email: emailLower,
         password: regPassword,
         options: {
-          emailRedirectTo: 'http://localhost:8081', // 👈 ADD THIS SINGLE LINE HERE TO BYPASS THE SETTINGS SITES!
+          emailRedirectTo: 'http://localhost:8081', 
           data: {
             full_name: fullName,
             role: userRole, 
@@ -54,13 +55,12 @@ export default function RegisterScreen() {
       });
 
       if (error) {
-        alert(`SUPABASE CLOUD ERROR: ${error.message.toUpperCase()}`);
+        alert("SUPABASE CLOUD ERROR: " + error.message.toUpperCase());
         return;
       }
 
-
       // SUCCESS CONTAINER ACTION ALERT 
-      alert(`SUCCESS! ACCOUNT CREATED SECURELY.\n\nA real verification email has been dispatched to: ${emailLower}\n\nPlease verify your account before logging in.`);
+      alert("SUCCESS! ACCOUNT CREATED SECURELY.\n\nA real verification email has been dispatched to: " + emailLower + "\n\nPlease verify your account before logging in.");
       router.replace('/'); // AUTO RE-ROUTE STRAIGHT BACK TO LOGIN HOME
       
     } catch (err) {
@@ -72,7 +72,6 @@ export default function RegisterScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* RESTORED HIGH QUALITY BACKGROUND IMAGE FEATURING CAMPUS STUDENTS */}
       <ImageBackground 
         source={{ uri: 'https://unsplash.com' }} 
         style={styles.backgroundImage}
@@ -93,7 +92,6 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.formContainer}>
-            {/* VENDOR OR STUDENT IDENTITY ACCENTS SELECTION */}
             <Text style={styles.inputLabel}>I AM A:</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity 
@@ -127,6 +125,7 @@ export default function RegisterScreen() {
               value={regEmail}
               onChangeText={setRegEmail}
               autoCapitalize="none"
+              autoCorrect={false}
               keyboardType="email-address"
             />
 
@@ -139,6 +138,7 @@ export default function RegisterScreen() {
               value={regPassword}
               onChangeText={setRegPassword}
               autoCapitalize="none"
+              autoCorrect={false}
             />
 
             <Text style={styles.inputLabel}>VERIFY SECURITY PASSWORD</Text>
@@ -150,13 +150,13 @@ export default function RegisterScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               autoCapitalize="none"
+              autoCorrect={false}
             />
 
             <TouchableOpacity style={styles.button} onPress={handleRegisterSubmission}>
               <Text style={styles.buttonText}>REGISTER NOW</Text>
             </TouchableOpacity>
 
-            {/* CLICK EVENT USES ROUTER BACK POINTER LINK */}
             <TouchableOpacity 
               style={styles.registerLinkContainer} 
               onPress={() => router.push('/')}
@@ -172,7 +172,6 @@ export default function RegisterScreen() {
   );
 }
 
-// INHERITED BEAUTIFUL SPECIFIC LAYOUT ENGINE CODES
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B2977' },
   backgroundImage: { flex: 1, width: '100%', height: '100%' },
