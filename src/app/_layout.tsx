@@ -1,21 +1,23 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
-// 💡 OPTION A: If the file uses "export function AnimatedSplashOverlay" (Named)
-import { AnimatedSplashOverlay } from '../components/animated-icon';
-import AppTabs from '../components/app-tabs';
-
-
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* The home screen defaults to index.tsx (Login view) */}
+        <Stack.Screen name="index" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="student" />
+        <Stack.Screen name="vendor" />
+        <Stack.Screen name="explore" />
+      </Stack>
     </ThemeProvider>
   );
 }

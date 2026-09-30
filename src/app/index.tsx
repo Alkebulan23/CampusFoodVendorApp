@@ -17,7 +17,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [userRole, setUserRole] = useState('STUDENT'); // DEFAULT
 
-  // DYNAMIC REAL-TIME SUPABASE SIGN-UP & EMAIL DISPATCH TRIGGER
+    // DYNAMIC REAL-TIME SUPABASE SIGN-UP & EMAIL DISPATCH TRIGGER
   const handleRegisterNowClick = async () => {
     if (!fullName || !regEmail || !regPassword || !userRole || !confirmPassword) {
       alert("ERROR: ALL REGISTRATION FIELDS ARE MANDATORY.");
@@ -25,6 +25,21 @@ export default function RegisterScreen() {
     }
 
     const emailLower = regEmail.toLowerCase().trim();
+
+    // ==========================================
+    // NEW: HORIZONTAL SWITCH VALIDATION GATES
+    // ==========================================
+    if (userRole === 'STUDENT' && !emailLower.endsWith('@tut4life.ac.za')) {
+      alert("ROLE MISMATCH: Students must use a @tut4life.ac.za institutional email address.");
+      return;
+    }
+
+    if (userRole === 'VENDOR' && !emailLower.endsWith('@tut.ac.za')) {
+      alert("ROLE MISMATCH: Vendors must use a @tut.ac.za staff/vendor email address.");
+      return;
+    }
+    // ==========================================
+
     const isTutEmail = emailLower.endsWith('@tut4life.ac.za') || emailLower.endsWith('@tut.ac.za');
     if (!isTutEmail) {
       alert("INVALID EMAIL: YOU MUST PROVIDE A VERIFIABLE TUT EMAIL ADDRESS (@tut4life.ac.za or @tut.ac.za).");
@@ -70,16 +85,27 @@ export default function RegisterScreen() {
     }
   };
 
-  // STANDARD SIGN-IN SESSION CONTROLLER
-  const handleLoginSubmission = async () => {
+
+    const handleLoginSubmission = async () => {
+
+      alert("TOUCH WORKING!");  
+
     if (!regEmail || !regPassword) {
       alert("PLEASE ENTER BOTH YOUR TUT EMAIL AND PASSWORD.");
       return;
     }
 
+    const emailLower = regEmail.toLowerCase().trim();
+
+    // 1. Fixed with @ symbols
+    if (!emailLower.endsWith('@tut.ac.za') && !emailLower.endsWith('@tut4life.ac.za')) {
+      alert("ACCESS DENIED: Enter a valid institutional email address ending with @tut.ac.za or @tut4life.ac.za");
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: regEmail.toLowerCase().trim(),
+        email: emailLower,
         password: regPassword,
       });
 
@@ -88,19 +114,31 @@ export default function RegisterScreen() {
         return;
       }
 
-      // SESSION GATEWAY VERIFICATION VALIDATOR
       if (!data.user?.email_confirmed_at) {
-        alert("ACCESS DENIED: YOUR TUT EMAIL ADDRESS IS NOT VERIFIED.\n\nPlease activate the verification link sent by Supabase in your inbox first.");
+        alert("ACCESS DENIED: YOUR TUT EMAIL ADDRESS IS NOT VERIFIED.");
         await supabase.auth.signOut();
         return;
       }
 
-      alert("WELCOME BACK! LOGGED IN SUCCESSFULLY.");
-      // router.replace('/dashboard');
+      const registeredMetadataRole = data.user.user_metadata?.role?.toUpperCase();
+
+      // FIXED ROUTING LAYER WITH NO TRAILING SLASH TARGETING LOOSE FILES DIRECTLY
+      if (emailLower.endsWith('@tut.ac.za') && registeredMetadataRole === 'VENDOR') {
+        router.push('/vendor' as any);
+      } else if (emailLower.endsWith('@tut4life.ac.za') && registeredMetadataRole === 'STUDENT') {
+        router.push('/student'as any);
+      } else {
+        alert("PROFILE MISMATCH ERROR:\n\nYour institutional email address domain configuration layout does not correspond to the assigned account role settings.");
+        await supabase.auth.signOut();
+      }
+
+
     } catch (err) {
       alert("SERVER TIMEOUT: Connection breakdown.");
     }
   };
+
+
 
    return (
     <View style={styles.container}>
@@ -204,22 +242,21 @@ export default function RegisterScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.registerLinkContainer} 
+              style={{ marginTop: 20 }}
               onPress={() => setIsRegisterMode(!isRegisterMode)}
-              activeOpacity={0.7}
             >
-              <Text style={styles.registerText}>
-                {isRegisterMode ? "ALREADY HAVE AN ACCOUNT? LOG IN" : "NEW STUDENT? CREATE ACCOUNT"}
+              <Text style={{ color: 'white', textAlign: 'center', fontWeight: '600' }}>
+                {isRegisterMode ? "ALREADY HAVE AN ACCOUNT? LOG IN" : "NEED AN ACCOUNT? SIGN UP"}
               </Text>
             </TouchableOpacity>
-          </View>
 
+          </View>
         </View>
       </ImageBackground>
     </View>
   );
-
 }
+
 
 // FIXED COMPATIBLE WEB DESIGN RULES
 const styles = StyleSheet.create({
@@ -284,7 +321,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     width: '100%',
-    zIndex: 999, // ELEVATED LAYER PLACEMENT SO IT ISN'T BLOCKED
+    
   },
   registerText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', letterSpacing: 1, textDecorationLine: 'underline' }
 });
