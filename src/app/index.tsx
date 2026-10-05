@@ -88,8 +88,6 @@ export default function RegisterScreen() {
 
     const handleLoginSubmission = async () => {
 
-      alert("TOUCH WORKING!");  
-
     if (!regEmail || !regPassword) {
       alert("PLEASE ENTER BOTH YOUR TUT EMAIL AND PASSWORD.");
       return;
