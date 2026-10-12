@@ -1,41 +1,19 @@
--- =========================================================================
--- 1. REPAIR & SECURE: handle_new_user
--- =========================================================================
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger 
-LANGUAGE plpgsql
-SECURITY DEFINER
--- 選 FIXES LINT 0011: Force function to resolve tables via explicit public schema
-SET search_path = public
-AS $$
-BEGIN
-  INSERT INTO public.users (tut_email, full_name, user_type)
-  VALUES (
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'full_name', 'Unknown'),
-    COALESCE(new.raw_user_meta_data->>'role', 'STUDENT')
+-- 1. Build an automated callback operation mapping function
+create or replace function public.handle_new_user_registration()
+returns trigger as $$
+begin
+  insert into public.users (full_name, tut_email, user_type, creation_time)
+  values (
+    coalesce(new.raw_user_meta_data->>'full_name', 'New Campus User'),
+    lower(new.email),
+    coalesce(upper(new.raw_user_meta_data->>'role'), 'STUDENT'),
+    now()
   );
-  RETURN new;
-END;
-$$;
+  return new;
+end;
+$$ language plpgsql security definer;
 
--- 選 FIXES LINT 0028 & 0029: Revoke all web/API permissions completely
-REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM public, anon, authenticated;
-
-
--- =========================================================================
--- 2. REPAIR & SECURE: handle_new_user_registration_sync
--- =========================================================================
-ALTER FUNCTION public.handle_new_user_registration_sync() 
-  SET search_path = public;
-
-REVOKE EXECUTE ON FUNCTION public.handle_new_user_registration_sync() FROM public, anon, authenticated;
-
-
--- =========================================================================
--- 3. REPAIR & SECURE: sync_vendor_name_with_fullname
--- =========================================================================
-ALTER FUNCTION public.sync_vendor_name_with_fullname() 
-  SET search_path = public;
-
-REVOKE EXECUTE ON FUNCTION public.sync_vendor_name_with_fullname() FROM public, anon, authenticated;
+-- 2. Bind the operational loop directly to the primary user registry
+create or replace trigger on_auth_user_signed_up
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user_registration();

@@ -184,6 +184,7 @@ export default function RegisterScreen() {
 
                 <Text style={styles.inputLabel}>FULL NAME</Text>
                 <TextInput 
+                  nativeID="full_name"
                   style={styles.input} 
                   placeholder="ENTER YOUR FIRST & LAST NAME" 
                   placeholderTextColor="#A0AEC0"
@@ -196,6 +197,7 @@ export default function RegisterScreen() {
             {/* 2. ALWAYS SHOW EMAIL AND PASSWORD FIELDS (BOTH LOGIN & REGISTER) */}
             <Text style={styles.inputLabel}>VERIFIABLE TUT EMAIL</Text>
             <TextInput 
+              nativeID="tut_email"
               style={styles.input} 
               placeholder="e.g. 219XXXXXX@tut4life.ac.za" 
               placeholderTextColor="#A0AEC0"
@@ -207,6 +209,7 @@ export default function RegisterScreen() {
 
             <Text style={styles.inputLabel}>PASSWORD (LETTERS + NUMBERS)</Text>
             <TextInput 
+              nativeID="reg_password"
               style={styles.input} 
               placeholder="CREATE STRONG PASSWORD" 
               placeholderTextColor="#A0AEC0"
@@ -220,7 +223,8 @@ export default function RegisterScreen() {
             {isRegisterMode && (
               <View style={{ width: '100%' }}>
                 <Text style={styles.inputLabel}>VERIFY SECURITY PASSWORD</Text>
-                <TextInput 
+                <TextInput
+                  nativeID="confirm_password" 
                   style={styles.input} 
                   placeholder="RE-ENTER PASSWORD TO MATCH" 
                   placeholderTextColor="#A0AEC0"
