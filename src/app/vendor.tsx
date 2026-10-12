@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+// 🔴 CHECK THIS LINE AT THE TOP OF YOUR FILE:
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 import { supabase } from '../../supabaseClient';
 
 export interface Order {
@@ -21,25 +23,22 @@ export interface VendorDetails {
 export default function VendorDashboard() {
   const router = useRouter();
 
+  // Loading indicator states while talking to the cloud backend
+  const [isLoading, setIsLoading] = useState(true);
+
   // Sidebar Menu Toggle State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Current active viewport module: 'setup' or 'orders'
-  const [activeModule, setActiveModule] = useState<'setup' | 'orders'>('orders');
+  const [activeModule, setActiveModule] = useState<'orders' | 'setup'>('orders');
 
-  // Vendor Information Details State Tracking
+  // Vendor Details State (Initialized empty, populated dynamically by Auth Meta)
   const [vendor, setVendor] = useState<VendorDetails>({
-    name: "Mbali Nxumalo", // Fallback simulation name matching requested context placeholder
-    standName: "Soshanguve South Cafeteria Block L", 
-    contactPhone: "+27 12 382 9000",
-    workingHours: "08:00 AM - 05:00 PM"
+    name: "", 
+    standName: "", 
+    contactPhone: "",
+    workingHours: ""
   });
-
-  // Split Name Utility logic to salute vendor by first name cleanly
-  const getFirstName = (fullName: string) => {
-    if (!fullName) return "Vendor";
-    return fullName.trim().split(" ")[0];
-  };
 
   // Mock Orders Queue Dataset
   const [orders, setOrders] = useState<Order[]>([
@@ -47,6 +46,51 @@ export default function VendorDashboard() {
     { id: "TUT-8831", items: "Full House Deluxe Kota + Sprite Combo", total: "R48.00", status: 'pending', student: "Zanele Ndlovu" },
     { id: "TUT-8832", items: "Quarter Chicken with Savoury Rice", total: "R65.00", status: 'preparing', student: "Sipho Khumalo" }
   ]);
+
+  // Hook layout to pull real identity logs at startup sequence loops
+  useEffect(() => {
+    async function fetchRealVendorIdentity() {
+      try {
+        // 1. Fetch current authentic user session metadata parameters
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user) {
+          router.replace('/');
+          return;
+        }
+
+        const realFullName = user.user_metadata?.full_name || "Food Vendor";
+
+        // 2. Fetch corresponding custom stand table records if they exist in DB
+        const { data: databaseProfile, error: dbError } = await supabase
+          .from('vendor_details')
+          .select('stand_name, contact_phone, working_hours')
+          .eq('id', user.id)
+          .single();
+
+        // 3. Fallback to standard defaults if database profile doesn't exist yet
+        setVendor({
+          name: realFullName,
+          standName: databaseProfile?.stand_name || "Soshanguve South Cafeteria Block L",
+          contactPhone: databaseProfile?.contact_phone || "+27 12 382 9000",
+          workingHours: databaseProfile?.working_hours || "08:00 AM - 05:00 PM"
+        });
+
+      } catch (err) {
+        console.log("Profile Sync breakdown:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRealVendorIdentity();
+  }, []);
+
+  // Split Name Utility logic to salute vendor by first name cleanly
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return "Vendor";
+    return fullName.trim().split(" ")[0];
+  };
 
   // Order Accept Workflow Handler 
   const handleAcceptOrder = (orderId: string) => {
@@ -70,6 +114,32 @@ export default function VendorDashboard() {
     alert(`🛎️ ALERT DISPATCHED:\n\nHey ${order.student}, your food from "${vendor.standName}" is cooked and hot! Please come collect your order reference #${order.id}.`);
   };
 
+  const handleSaveConfigurations = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('vendor_details')
+        .upsert({
+          id: user.id,
+          stand_name: vendor.standName,
+          contact_phone: vendor.contactPhone,
+          working_hours: vendor.workingHours,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        alert(`DB SAVE ERROR: ${error.message.toUpperCase()}`);
+        return;
+      }
+
+      alert("Configurations successfully synchronized live with your custom database!");
+    } catch (err) {
+      alert("Network exception saving store records.");
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -78,6 +148,15 @@ export default function VendorDashboard() {
       alert("Error logging out.");
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0B2977" />
+        <Text style={{ marginTop: 12, fontWeight: '700', color: '#0B2977' }}>Synchronizing Store Profile Data...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -164,7 +243,7 @@ export default function VendorDashboard() {
                 placeholderTextColor="#A0AEC0"
               />
 
-              <TouchableOpacity style={styles.saveButton} onPress={() => alert("Configurations updated locally!")}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSaveConfigurations}>
                 <Text style={styles.saveButtonText}>SAVE CONFIGURATIONS</Text>
               </TouchableOpacity>
             </View>
@@ -184,7 +263,9 @@ export default function VendorDashboard() {
                       <Text style={styles.orderIdText}>Order #{order.id}</Text>
                       <Text style={styles.priceTagText}>{order.total}</Text>
                     </View>
-                    <Text style={styles.orderDetailsText}><Text style={{fontWeight:'700'}}>{order.student}</Text>: {order.items}</Text>
+                    <Text style={styles.orderDetailsText}>
+                      <Text style={{fontWeight:'700'}}>{order.student}</Text>: {order.items}
+                    </Text>
                     
                     <View style={styles.actionButtonsRowLayout}>
                       <TouchableOpacity style={styles.acceptButton} onPress={() => handleAcceptOrder(order.id)}>
@@ -211,8 +292,10 @@ export default function VendorDashboard() {
                         <Text style={styles.statusBadgeText}>{order.status.toUpperCase()}</Text>
                       </View>
                     </View>
-                    <Text style={styles.orderDetailsText}><Text style={{fontWeight:'700'}}>{order.student}</Text>: {order.items}</Text>
-                             <Text style={styles.stateMutationLabel}>MUTATE STATE PROGRESSION LAYER:</Text>
+                    <Text style={styles.orderDetailsText}>
+                      <Text style={{fontWeight:'700'}}>{order.student}</Text>: {order.items}
+                    </Text>
+                    <Text style={styles.stateMutationLabel}>MUTATE STATE PROGRESSION LAYER:</Text>
                     <View style={styles.statusTogglesRowButtonGroup}>
                       {(['pending', 'preparing', 'ready'] as const).map(status => (
                         <TouchableOpacity
@@ -244,7 +327,7 @@ export default function VendorDashboard() {
     </View>
   );
 }
-           
+
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
