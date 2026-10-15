@@ -74,19 +74,26 @@ async function fetchStudentOrders(
   const vendorNames = new Map<string, string>();
 
   if (vendorIds.length > 0) {
-    const { data: vendorRecords, error: vendorError } = await supabase
-      .from("vendor_details")
-      .select("id, stand_name")
-      .in("id", vendorIds);
+    try {
+      const { data: vendorRecords, error: vendorError } = await supabase
+        .from("vendor_details")
+        .select("id, stand_name")
+        .in("id", vendorIds);
 
-    if (vendorError) {
-      console.error("Error loading order vendor names:", vendorError.message);
-    } else {
-      (vendorRecords || []).forEach((vendor: VendorDetailsRecord) => {
-        if (vendor.stand_name) {
-          vendorNames.set(vendor.id, vendor.stand_name);
-        }
-      });
+      if (vendorError) {
+        console.error("Error loading order vendor names:", vendorError.message);
+      } else {
+        (vendorRecords || []).forEach((vendor: VendorDetailsRecord) => {
+          if (vendor.stand_name) {
+            vendorNames.set(vendor.id, vendor.stand_name);
+          }
+        });
+      }
+    } catch (err) {
+      console.error(
+        "Error loading order vendor names:",
+        err instanceof Error ? err.message : "Unexpected vendor lookup error.",
+      );
     }
   }
 
@@ -244,7 +251,10 @@ export default function StudentDashboard() {
         if (authError || !user) {
           const message =
             authError?.message || "Sign in to view your order status.";
-          console.error("Could not identify student for order tracking:", message);
+          console.error(
+            "Could not identify student for order tracking:",
+            message,
+          );
           setOrdersError(message);
           return;
         }
@@ -267,7 +277,9 @@ export default function StudentDashboard() {
             },
           )
           .subscribe((status, error) => {
-            if (
+            if (isActive && status === "SUBSCRIBED") {
+              void loadStudentOrders(user.id);
+            } else if (
               isActive &&
               (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
             ) {
@@ -281,7 +293,9 @@ export default function StudentDashboard() {
           });
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "Unexpected error loading orders.";
+          err instanceof Error
+            ? err.message
+            : "Unexpected error loading orders.";
         console.error("Error synchronizing student orders:", message);
         if (isActive) setOrdersError(message);
       } finally {
@@ -378,6 +392,7 @@ export default function StudentDashboard() {
       const orderRows = [...vendorOrderGroups.entries()].map(
         ([vendorId, group]) => ({
           student_id: user.id,
+          student_name: studentName,
           vendor_id: vendorId,
           items_summary: group.items
             .map((item) => `${item.quantity}x ${item.name}`)
@@ -399,13 +414,22 @@ export default function StudentDashboard() {
         return;
       }
 
-      const { orders, error } = await fetchStudentOrders(user.id);
-      if (error) {
-        console.error("Error refreshing student orders:", error);
-        setOrdersError(error);
-      } else {
-        setStudentOrders(orders);
-        setOrdersError("");
+      try {
+        const { orders, error } = await fetchStudentOrders(user.id);
+        if (error) {
+          console.error("Error refreshing student orders:", error);
+          setOrdersError(error);
+        } else {
+          setStudentOrders(orders);
+          setOrdersError("");
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Unexpected error refreshing orders.";
+        console.error("Error refreshing student orders:", message);
+        setOrdersError(message);
       }
 
       alert("Order successfully dispatched to vendor workspace queue!");
@@ -663,13 +687,19 @@ export default function StudentDashboard() {
               ) : null}
               {isLoadingOrders ? (
                 <ActivityIndicator color="#0B2977" />
-              ) : studentOrders.length === 0 ? (
-                <Text style={styles.emptyText}>
-                  You do not have any orders right now.
-                </Text>
-              ) : (
+              ) : studentOrders.length > 0 ? (
                 studentOrders.map((order) => (
                   <View key={order.id} style={styles.statusDisplayCard}>
+                    {order.status.toLowerCase() === "ready" ? (
+                      <View style={styles.readyOrderNotice}>
+                        <Text style={styles.readyOrderNoticeTitle}>
+                          YOUR ORDER IS READY!
+                        </Text>
+                        <Text style={styles.readyOrderNoticeText}>
+                          Please collect your order from {order.vendor}.
+                        </Text>
+                      </View>
+                    ) : null}
                     <Text style={styles.orderLabel}>ORDER REFERENCE:</Text>
                     <Text style={styles.orderValue}>#{order.id}</Text>
 
@@ -684,7 +714,13 @@ export default function StudentDashboard() {
                         <Text style={styles.orderLabel}>TOTAL:</Text>
                         <Text style={styles.orderTotal}>{order.total}</Text>
                       </View>
-                      <View style={styles.badgeElement}>
+                      <View
+                        style={[
+                          styles.badgeElement,
+                          order.status.toLowerCase() === "ready" &&
+                            styles.readyStatusBadge,
+                        ]}
+                      >
                         <Text style={styles.badgeText}>
                           {order.status.toUpperCase()}
                         </Text>
@@ -692,6 +728,10 @@ export default function StudentDashboard() {
                     </View>
                   </View>
                 ))
+              ) : ordersError ? null : (
+                <Text style={styles.emptyText}>
+                  You do not have any orders right now.
+                </Text>
               )}
             </View>
           )}
@@ -886,6 +926,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
+  readyOrderNotice: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#10B981",
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+  },
+  readyOrderNoticeTitle: {
+    color: "#047857",
+    fontSize: 14,
+    fontWeight: "900",
+    marginBottom: 3,
+  },
+  readyOrderNoticeText: {
+    color: "#065F46",
+    fontSize: 12,
+    fontWeight: "600",
+  },
   orderLabel: {
     color: "#718096",
     fontSize: 10,
@@ -926,6 +985,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
   },
+  readyStatusBadge: { backgroundColor: "#A7F3D0" },
   badgeText: {
     color: "#0B2977",
     fontWeight: "900",

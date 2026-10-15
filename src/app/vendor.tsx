@@ -13,6 +13,11 @@ import {
 
 import { supabase } from "../../supabaseClient";
 
+interface ProfileRecord {
+  id: string;
+  full_name: string;
+}
+
 export interface Order {
   id: string;
   items: string;
@@ -23,10 +28,10 @@ export interface Order {
 
 interface OrderRecord {
   id: string | number;
-  items: string;
-  total: string | number;
+  items_summary: string | null;
+  total_price: string | number;
   status: Order["status"];
-  student: string | null;
+  student_id: string | null;
 }
 
 export interface VendorDetails {
@@ -92,34 +97,70 @@ export default function VendorDashboard() {
           return;
         }
 
+        // ✅ Fetch vendor orders
         const { data: orderRecords, error: ordersLoadError } = await supabase
           .from("orders")
-          .select("id, items_summary, total_price, status, student_id")
+          .select(
+            `
+            id,
+            items_summary,
+            total_price,
+            status,
+            student_id,
+            profiles!orders_student_id_fkey (
+              full_name
+            )
+          `,
+          )
           .eq("vendor_id", user.id)
           .order("created_at", { ascending: false });
+        const safeOrders = (orderRecords ?? []) as OrderRecord[];
 
-        if (ordersLoadError) {
-          console.error(
-            "Error loading vendor orders:",
-            ordersLoadError.message,
-          );
-          setOrdersError(ordersLoadError.message);
-        } else {
-          setOrders(
-            (orderRecords || []).map((order: any) => ({
-              id: String(order.id),
-              items: order.items_summary,
-              total:
-                typeof order.total_price === "number"
-                  ? `R${order.total_price.toFixed(2)}`
-                  : order.total_price,
-              status: order.status,
-              student: order.student_id || "Student",
-            })),
-          );
+        setOrders(
+          (orderRecords || []).map((order: any) => ({
+            id: String(order.id),
+            items: order.items_summary,
+            total:
+              typeof order.total_price === "number"
+                ? `R${order.total_price.toFixed(2)}`
+                : `R${order.total_price}`,
+            status: order.status,
+            student: order.profiles?.full_name || "Unknown Student",
+          })),
+        );
 
-          setOrdersError("");
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles") // ✅ two type args: row type + {}
+          .select("id, full_name")
+          .in(
+            "id",
+            safeOrders.map((o) => o.student_id as string),
+          ); // ✅ cast to string
+
+        const profileList = (profiles ?? []) as ProfileRecord[];
+        console.log("Profiles:", profileList);
+        console.log("Orders:", safeOrders);
+
+        if (profilesError) {
+          console.error("Error loading profiles", profilesError);
         }
+
+        const profileMap = new Map(profileList.map((p) => [p.id, p.full_name]));
+
+        setOrders(
+          safeOrders.map((order) => ({
+            id: String(order.id),
+            items: order.items_summary || "Order details unavailable",
+            total:
+              typeof order.total_price === "number"
+                ? `R${order.total_price.toFixed(2)}`
+                : order.total_price,
+            status: order.status,
+            student: profileMap.get(order.student_id ?? "") || "Student",
+          })),
+        );
+
+        setOrdersError("");
 
         const realFullName = user.user_metadata?.full_name || "Food Vendor";
 
@@ -171,42 +212,49 @@ export default function VendorDashboard() {
     return fullName.trim().split(" ")[0];
   };
 
-  const persistOrderStatus = async (
-    orderId: string,
-    status: Order["status"],
-  ) => {
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+  const persistOrderStatus = async (order: Order, status: Order["status"]) => {
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      alert(authError?.message || "Please sign in before updating an order.");
+      if (authError || !user) {
+        alert(authError?.message || "Please sign in before updating an order.");
+        return false;
+      }
+
+      const { data, error } = await supabase
+        .from("orders")
+        .update({ status })
+        .eq("id", order.id)
+        .eq("vendor_id", user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        alert(`Could not update order #${order.id}: ${error.message}`);
+        return false;
+      }
+      if (!data) {
+        alert(
+          `Order #${order.id} could not be found or is no longer available.`,
+        );
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unexpected error updating order.";
+      alert(`Could not update order status: ${message}`);
       return false;
     }
-
-    const { data, error } = await supabase
-      .from("orders")
-      .update({ status })
-      .eq("id", orderId)
-      .eq("vendor_id", user.id)
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      alert(`Could not update order status: ${error.message}`);
-      return false;
-    }
-    if (!data) {
-      alert("This order could not be found or is no longer available.");
-      return false;
-    }
-
-    return true;
   };
 
   const handleAcceptOrder = async (orderId: string) => {
-    if (!(await persistOrderStatus(orderId, "pending"))) return;
+    const order = orders.find((currentOrder) => currentOrder.id === orderId);
+    if (!order || !(await persistOrderStatus(order, "pending"))) return;
 
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: "pending" } : o)),
@@ -223,7 +271,8 @@ export default function VendorDashboard() {
     orderId: string,
     newStatus: Order["status"],
   ) => {
-    if (!(await persistOrderStatus(orderId, newStatus))) return;
+    const order = orders.find((currentOrder) => currentOrder.id === orderId);
+    if (!order || !(await persistOrderStatus(order, newStatus))) return;
 
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
