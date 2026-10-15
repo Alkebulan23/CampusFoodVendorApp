@@ -77,14 +77,7 @@ export default function VendorDashboard() {
   const [newMealPrice, setNewMealPrice] = useState("");
   const [newMealImage, setNewMealImage] = useState("");
 
-  const [selectedIngredients, setSelectedIngredients] = useState<{
-    [key: string]: boolean;
-  }>({
-    cheese: false,
-    polony: false,
-    chips: false,
-    lettuce: false,
-  });
+  const [ingredients, setIngredients] = useState<string[]>([""]);
 
   useEffect(() => {
     async function fetchRealVendorIdentity() {
@@ -101,26 +94,30 @@ export default function VendorDashboard() {
 
         const { data: orderRecords, error: ordersLoadError } = await supabase
           .from("orders")
-          .select("id, items, total, status, student")
+          .select("id, items_summary, total_price, status, student_id")
           .eq("vendor_id", user.id)
           .order("created_at", { ascending: false });
 
         if (ordersLoadError) {
-          console.error("Error loading vendor orders:", ordersLoadError.message);
+          console.error(
+            "Error loading vendor orders:",
+            ordersLoadError.message,
+          );
           setOrdersError(ordersLoadError.message);
         } else {
           setOrders(
-            (orderRecords || []).map((order: OrderRecord) => ({
+            (orderRecords || []).map((order: any) => ({
               id: String(order.id),
-              items: order.items,
+              items: order.items_summary,
               total:
-                typeof order.total === "number"
-                  ? `R${order.total.toFixed(2)}`
-                  : order.total,
+                typeof order.total_price === "number"
+                  ? `R${order.total_price.toFixed(2)}`
+                  : order.total_price,
               status: order.status,
-              student: order.student || "Student",
+              student: order.student_id || "Student",
             })),
           );
+
           setOrdersError("");
         }
 
@@ -174,7 +171,43 @@ export default function VendorDashboard() {
     return fullName.trim().split(" ")[0];
   };
 
-  const handleAcceptOrder = (orderId: string) => {
+  const persistOrderStatus = async (
+    orderId: string,
+    status: Order["status"],
+  ) => {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      alert(authError?.message || "Please sign in before updating an order.");
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", orderId)
+      .eq("vendor_id", user.id)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      alert(`Could not update order status: ${error.message}`);
+      return false;
+    }
+    if (!data) {
+      alert("This order could not be found or is no longer available.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    if (!(await persistOrderStatus(orderId, "pending"))) return;
+
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: "pending" } : o)),
     );
@@ -186,7 +219,12 @@ export default function VendorDashboard() {
     alert(`Order #${orderId} rejected and removed from queue.`);
   };
 
-  const handleStatusChange = (orderId: string, newStatus: Order["status"]) => {
+  const handleStatusChange = async (
+    orderId: string,
+    newStatus: Order["status"],
+  ) => {
+    if (!(await persistOrderStatus(orderId, newStatus))) return;
+
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
     );
@@ -198,13 +236,10 @@ export default function VendorDashboard() {
     );
   };
 
-  const toggleIngredient = (key: string) => {
-    setSelectedIngredients((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
   const handleAddNewMeal = async () => {
     const mealName = newMealName.trim();
     const mealPrice = Number(newMealPrice);
+
     if (
       !mealName ||
       !newMealPrice.trim() ||
@@ -221,6 +256,7 @@ export default function VendorDashboard() {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
+
       if (authError || !user) {
         alert(
           authError?.message ||
@@ -244,16 +280,16 @@ export default function VendorDashboard() {
         return;
       }
 
-      const activeIngredients = Object.keys(selectedIngredients).filter(
-        (key) => selectedIngredients[key],
-      );
+      // ✅ Dynamic ingredient handling
+      const activeIngredients = ingredients.filter((i) => i.trim() !== "");
+
       const { data: mealRecord, error: mealError } = await supabase
-        .from("food_items") // ✅ correct table
+        .from("food_items")
         .insert({
           vendor_id: user.id,
           name: mealName,
           price: mealPrice,
-          description: activeIngredients.join(", "), // ✅ store ingredients here
+          description: activeIngredients.join(", "), // store as comma-separated string
           is_available: true,
         })
         .select("id, name, price, description")
@@ -280,15 +316,11 @@ export default function VendorDashboard() {
       setVendorMealsError("");
       alert(`${createdMeal.name} added to your storefront menu.`);
 
+      // ✅ Reset form
       setNewMealName("");
       setNewMealPrice("");
       setNewMealImage("");
-      setSelectedIngredients({
-        cheese: false,
-        polony: false,
-        chips: false,
-        lettuce: false,
-      });
+      setIngredients([""]); // reset to one empty field
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unexpected error saving meal.";
@@ -558,27 +590,28 @@ export default function VendorDashboard() {
               <Text style={styles.inputLabel}>
                 ASSIGN SPECIFIC INGREDIENTS COMBO BLOCK
               </Text>
-              <View style={styles.ingredientsCheckboxContainer}>
-                {["cheese", "polony", "chips", "lettuce"].map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.checkboxOption,
-                      selectedIngredients[item] && styles.checkboxOptionActive,
-                    ]}
-                    onPress={() => toggleIngredient(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.checkboxText,
-                        selectedIngredients[item] && styles.checkboxTextActive,
-                      ]}
-                    >
-                      {selectedIngredients[item] ? "✓ " : "+ "}{" "}
-                      {item.toUpperCase()}
-                    </Text>
-                  </TouchableOpacity>
+              <View style={styles.ingredientsInputContainer}>
+                {ingredients.map((ingredient, index) => (
+                  <TextInput
+                    key={index}
+                    style={styles.inputField}
+                    value={ingredient}
+                    onChangeText={(text) => {
+                      const newIngredients = [...ingredients];
+                      newIngredients[index] = text;
+                      setIngredients(newIngredients);
+                    }}
+                    placeholder={`Ingredient ${index + 1}`}
+                    placeholderTextColor="#A0AEC0"
+                  />
                 ))}
+
+                <TouchableOpacity
+                  onPress={() => setIngredients([...ingredients, ""])}
+                  style={styles.addButton}
+                >
+                  <Text style={styles.addButtonText}>+ Add Ingredient</Text>
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -1068,5 +1101,24 @@ const styles = StyleSheet.create({
     color: "#0B2977",
     marginVertical: 2,
   },
+  ingredientsInputContainer: {
+    marginTop: 10,
+  },
+
+  addButton: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "#0B2977",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+
+  addButtonText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
   ingredientsListTag: { fontSize: 12, color: "#64748B", fontWeight: "600" },
 });

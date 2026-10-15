@@ -32,7 +32,7 @@ export interface ActiveOrder {
   vendor: string;
   items: string;
   total: string;
-  status: "pending" | "preparing" | "ready" | "completed";
+  status: string;
 }
 
 interface VendorMealRecord {
@@ -46,6 +46,60 @@ interface VendorMealRecord {
 interface VendorDetailsRecord {
   id: string;
   stand_name: string | null;
+}
+
+interface StudentOrderRecord {
+  id: string | number;
+  vendor_id: string;
+  items_summary: string | null;
+  total_price: number | string;
+  status: string;
+}
+
+async function fetchStudentOrders(
+  studentId: string,
+): Promise<{ orders: ActiveOrder[]; error: string | null }> {
+  const { data: orderRecords, error } = await supabase
+    .from("orders")
+    .select("id, vendor_id, items_summary, total_price, status")
+    .eq("student_id", studentId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { orders: [], error: error.message };
+  }
+
+  const orders = (orderRecords || []) as StudentOrderRecord[];
+  const vendorIds = [...new Set(orders.map((order) => order.vendor_id))];
+  const vendorNames = new Map<string, string>();
+
+  if (vendorIds.length > 0) {
+    const { data: vendorRecords, error: vendorError } = await supabase
+      .from("vendor_details")
+      .select("id, stand_name")
+      .in("id", vendorIds);
+
+    if (vendorError) {
+      console.error("Error loading order vendor names:", vendorError.message);
+    } else {
+      (vendorRecords || []).forEach((vendor: VendorDetailsRecord) => {
+        if (vendor.stand_name) {
+          vendorNames.set(vendor.id, vendor.stand_name);
+        }
+      });
+    }
+  }
+
+  return {
+    orders: orders.map((order) => ({
+      id: String(order.id),
+      vendor: vendorNames.get(order.vendor_id) || "TUT Campus Vendor Hub",
+      items: order.items_summary || "Order details unavailable",
+      total: `R${Number(order.total_price).toFixed(2)}`,
+      status: order.status || "unknown",
+    })),
+    error: null,
+  };
 }
 
 export default function StudentDashboard() {
@@ -65,8 +119,9 @@ export default function StudentDashboard() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  // 📦 FIXED: Track live order parameters as optional null type state
-  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
+  const [studentOrders, setStudentOrders] = useState<ActiveOrder[]>([]);
+  const [ordersError, setOrdersError] = useState("");
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
 
   // Hook layout to pull authentic foods from the database workspace on mount
   useEffect(() => {
@@ -159,6 +214,91 @@ export default function StudentDashboard() {
     fetchLiveCampusMenus();
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+    let ordersChannel: ReturnType<typeof supabase.channel> | undefined;
+
+    async function loadStudentOrders(studentId: string) {
+      const { orders, error } = await fetchStudentOrders(studentId);
+
+      if (!isActive) return;
+
+      if (error) {
+        console.error("Error loading student orders:", error);
+        setOrdersError(error);
+        return;
+      }
+
+      setStudentOrders(orders);
+      setOrdersError("");
+    }
+
+    async function subscribeToStudentOrders() {
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (!isActive) return;
+        if (authError || !user) {
+          const message =
+            authError?.message || "Sign in to view your order status.";
+          console.error("Could not identify student for order tracking:", message);
+          setOrdersError(message);
+          return;
+        }
+
+        await loadStudentOrders(user.id);
+        if (!isActive) return;
+
+        ordersChannel = supabase
+          .channel(`student-orders-${user.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "orders",
+              filter: `student_id=eq.${user.id}`,
+            },
+            () => {
+              void loadStudentOrders(user.id);
+            },
+          )
+          .subscribe((status, error) => {
+            if (
+              isActive &&
+              (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
+            ) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : error || "Live order updates are temporarily unavailable.";
+              console.error("Student order subscription failed:", message);
+              setOrdersError(message);
+            }
+          });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Unexpected error loading orders.";
+        console.error("Error synchronizing student orders:", message);
+        if (isActive) setOrdersError(message);
+      } finally {
+        if (isActive) setIsLoadingOrders(false);
+      }
+    }
+
+    void subscribeToStudentOrders();
+
+    return () => {
+      isActive = false;
+      if (ordersChannel) {
+        void supabase.removeChannel(ordersChannel);
+      }
+    };
+  }, []);
+
   const addToCart = (item: FoodItem) => {
     setCart((prevCart) => {
       const existing = prevCart.find((i) => i.id === item.id);
@@ -201,11 +341,6 @@ export default function StudentDashboard() {
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
 
-    const consolidatedItems = cart
-      .map((i) => `${i.quantity}x ${i.name}`)
-      .join(", ");
-    const calculatedTotalValue = calculateTotal();
-
     setIsPlacingOrder(true);
     try {
       const {
@@ -243,18 +378,18 @@ export default function StudentDashboard() {
       const orderRows = [...vendorOrderGroups.entries()].map(
         ([vendorId, group]) => ({
           student_id: user.id,
-          student: studentName,
           vendor_id: vendorId,
-          items: group.items
+          items_summary: group.items
             .map((item) => `${item.quantity}x ${item.name}`)
             .join(", "),
-          total: group.items.reduce(
+          total_price: group.items.reduce(
             (sum, item) => sum + item.price * item.quantity,
             0,
           ),
           status: "new",
         }),
       );
+
       const { error: orderError } = await supabase
         .from("orders")
         .insert(orderRows);
@@ -264,15 +399,14 @@ export default function StudentDashboard() {
         return;
       }
 
-      setActiveOrder({
-        id: `TUT-${Math.floor(1000 + Math.random() * 9000)}`,
-        vendor:
-          menuItems.find((m) => m.id === cart[0].id)?.vendor ||
-          "Campus Kitchen Hub",
-        items: consolidatedItems,
-        total: calculatedTotalValue,
-        status: "pending",
-      });
+      const { orders, error } = await fetchStudentOrders(user.id);
+      if (error) {
+        console.error("Error refreshing student orders:", error);
+        setOrdersError(error);
+      } else {
+        setStudentOrders(orders);
+        setOrdersError("");
+      }
 
       alert("Order successfully dispatched to vendor workspace queue!");
       setCart([]);
@@ -508,7 +642,9 @@ export default function StudentDashboard() {
                     disabled={isPlacingOrder}
                   >
                     <Text style={styles.checkoutButtonText}>
-                      {isPlacingOrder ? "SAVING ORDER..." : "CONFIRM & PLACE ORDER"}
+                      {isPlacingOrder
+                        ? "SAVING ORDER..."
+                        : "CONFIRM & PLACE ORDER"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -520,38 +656,42 @@ export default function StudentDashboard() {
           {activeTab === "status" && (
             <View style={styles.innerContainer}>
               <Text style={styles.sectionTitle}>Live Order Tracker</Text>
-
-              {/* 📦 FIXED: Empty-state message setup gate if no active orders have been checked out yet */}
-              {!activeOrder ? (
+              {ordersError ? (
                 <Text style={styles.emptyText}>
-                  You do not have any active orders right now.
+                  Could not sync order updates: {ordersError}
+                </Text>
+              ) : null}
+              {isLoadingOrders ? (
+                <ActivityIndicator color="#0B2977" />
+              ) : studentOrders.length === 0 ? (
+                <Text style={styles.emptyText}>
+                  You do not have any orders right now.
                 </Text>
               ) : (
-                <View style={styles.statusDisplayCard}>
-                  <Text style={styles.orderLabel}>
-                    ORDER REFERENCING NUMBER:
-                  </Text>
-                  <Text style={styles.orderValue}>#{activeOrder.id}</Text>
+                studentOrders.map((order) => (
+                  <View key={order.id} style={styles.statusDisplayCard}>
+                    <Text style={styles.orderLabel}>ORDER REFERENCE:</Text>
+                    <Text style={styles.orderValue}>#{order.id}</Text>
 
-                  <Text style={styles.orderLabel}>PREPARING KITCHEN HUB:</Text>
-                  <Text style={styles.orderValue}>{activeOrder.vendor}</Text>
+                    <Text style={styles.orderLabel}>VENDOR:</Text>
+                    <Text style={styles.orderValue}>{order.vendor}</Text>
 
-                  <Text style={styles.orderLabel}>ITEMS ASSIGNED:</Text>
-                  <Text style={styles.orderValue}>{activeOrder.items}</Text>
+                    <Text style={styles.orderLabel}>ITEMS:</Text>
+                    <Text style={styles.orderValue}>{order.items}</Text>
 
-                  <View style={styles.statusDivider} />
-
-                  <View style={styles.pipelineRow}>
-                    <Text style={styles.currentStatusLabel}>
-                      PIPELINE STATUS STATE:
-                    </Text>
-                    <View style={styles.badgeElement}>
-                      <Text style={styles.badgeText}>
-                        {activeOrder.status.toUpperCase()}
-                      </Text>
+                    <View style={styles.pipelineRow}>
+                      <View style={styles.orderTotalWrap}>
+                        <Text style={styles.orderLabel}>TOTAL:</Text>
+                        <Text style={styles.orderTotal}>{order.total}</Text>
+                      </View>
+                      <View style={styles.badgeElement}>
+                        <Text style={styles.badgeText}>
+                          {order.status.toUpperCase()}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
+                ))
               )}
             </View>
           )}
@@ -742,6 +882,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 18,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
@@ -771,6 +912,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 4,
+  },
+  orderTotalWrap: { flex: 1 },
+  orderTotal: {
+    color: "#0B2977",
+    fontSize: 15,
+    fontWeight: "900",
   },
   currentStatusLabel: { fontSize: 12, fontWeight: "900", color: "#0B2977" },
   badgeElement: {
