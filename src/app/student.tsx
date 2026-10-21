@@ -392,7 +392,6 @@ export default function StudentDashboard() {
       const orderRows = [...vendorOrderGroups.entries()].map(
         ([vendorId, group]) => ({
           student_id: user.id,
-          student_name: studentName,
           vendor_id: vendorId,
           items_summary: group.items
             .map((item) => `${item.quantity}x ${item.name}`)
